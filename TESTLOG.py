@@ -30,4 +30,3 @@ class sendPeriod(QThread):
 #     connect_signal = pyqtSignal()
 #     def run():
 #         from clientConnex import p
-        

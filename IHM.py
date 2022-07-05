@@ -31,13 +31,13 @@ logging.basicConfig(level=logging.WARNING)
 #connexion_status = 'None'logTextToShow#simulationStatus = "OFF"
 
 sentResources=[]
-LOGlist = []
+LOGlist = ""
 
 
 
 class Ui_Widget(QtCore.QObject):
 
-    my_signal = pyqtSignal()    
+    dataSentSignal = pyqtSignal()    
     
     def setupUi(self, Widget):
         Widget.setObjectName("Widget")
@@ -202,7 +202,11 @@ class Ui_Widget(QtCore.QObject):
         #for tests
         self.sendingDataPeridod_Input.setText("3")
 
-        self.my_signal.connect(self.showLog)
+        #connect signals
+        self.dataSentSignal.connect(self.showLog)
+        
+
+        #add logger box
 
     def retranslateUi(self, Widget):
         _translate = QtCore.QCoreApplication.translate
@@ -248,8 +252,9 @@ class Ui_Widget(QtCore.QObject):
                 global LOGlist
                 listToSend = loadUseCaseObjects(self.useCase_dropBox.currentText())
                 sentResources = listToSend
+                LOGlist = LOGlist + str(datetime.now())+ " " +str(sentResources) +'\n'
                 #LOGlist.append()
-                self.my_signal.emit()
+                self.dataSentSignal.emit()
                 sendThread.run(self,listToSend)
 
                 sleep(sendingPeriod)
@@ -397,19 +402,24 @@ class Ui_Widget(QtCore.QObject):
     
     def sendEvent_function(self):
         global p
+        global LOGlist
+        if settings.simulationStatus == "ON": 
+                eventSelection = self.event_dropBox.currentText()
         
-        eventSelection = self.event_dropBox.currentText()
-       
-        eventObjectsToSend = loadEventList(eventSelection)
-        sendEvent(eventObjectsToSend)
-        
+                eventObjectsToSend = loadEventList(eventSelection)
+                sendEvent(eventObjectsToSend)
+                LOGlist = LOGlist + str(datetime.now())+ " " +str(eventObjectsToSend) +'\n'
+                self.dataSentSignal.emit()
+
 #     def selectEvent(self):loadEventList
     @QtCore.pyqtSlot()
     def showLog(self):
        global count
        global sentResources
        count = count +1
-       self.info_display.setText(str(sentResources))
+       self.info_display.setText(LOGlist)
+
+       
         
        
 #case   
