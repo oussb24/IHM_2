@@ -26,7 +26,15 @@ class sendPeriod(QThread):
             sendThread.run(self)
             time.sleep(2)
 
-# class connectThread(QThread):
-#     connect_signal = pyqtSignal()
-#     def run():
-#         from clientConnex import p
+
+class stopWatch(QThread):
+    def __init__(self,Ui_Widget) -> None:
+         self.Ui_Widget = Ui_Widget
+         self.Ui_Widget.timeSignal
+    def start(self):
+        startTime = time.time()
+        pass
+    def stop(self):
+        pass
+    def restart(self):
+        pass

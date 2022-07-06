@@ -24,7 +24,7 @@ from PyQt5.QtCore import (QCoreApplication, QObject, QRunnable, QThread,
                           QThreadPool, pyqtSignal)
                           
 from datetime import datetime  
-from TESTLOG import sendPeriod, sendThread
+from TESTLOG import sendPeriod, sendThread,stopWatch
 import logging
 count=0
 logging.basicConfig(level=logging.WARNING)
@@ -32,13 +32,27 @@ logging.basicConfig(level=logging.WARNING)
 
 sentResources=[]
 LOGlist = ""
+pausedTime ='None'
+class stopWatch(QThread):
+    
+    def __init__(self,Ui_Widget) -> None:
+         self.Ui_Widget = Ui_Widget
+        #self.Ui_Widget.timeSignal.connect(self.startTime)
+    def startTime(self):
+        startTime = time.time()
+        self.timeSignal.emit()
 
-
+        pass
+    def stop(self):
+        pass
+    def restart(self):
+        pass
 
 class Ui_Widget(QtCore.QObject):
 
     dataSentSignal = pyqtSignal()    
-    
+    startSimulationSignal = pyqtSignal()
+    stopSimulationSignal = pyqtSignal()
     def setupUi(self, Widget):
         Widget.setObjectName("Widget")
         Widget.resize(876, 634)
@@ -204,7 +218,8 @@ class Ui_Widget(QtCore.QObject):
 
         #connect signals
         self.dataSentSignal.connect(self.showLog)
-        
+        self.startSimulationSignal.connect(self.startWatch) 
+        self.stopSimulationSignal.connect(self.stopWatch)
 
         #add logger box
 
@@ -225,6 +240,8 @@ class Ui_Widget(QtCore.QObject):
         self.useCase_label.setText(_translate("Widget", "Description"))
 
     
+    
+
     def sendResource_function(self,resourceList):
         from clientConnex import p
         global t6
@@ -239,20 +256,21 @@ class Ui_Widget(QtCore.QObject):
                 p.stdin.flush()
         #t6.join()        
     
-    def peridoicMode_fucntion(self,sendingPeriod): #,sendingDataPeridod_Input,resourceList
+    def peridoicMode_fucntion(self,sendingPeriod,simulationDuration): #,sendingDataPeridod_Input,resourceList
         global t6
         
         def periodicMode_thread():
             #global count
             
             global sentResources
-            while settings.simulationStatus == "ON":
+            while settings.simulationStatus == "ON" and ((time.time() - simulationStartTime) <= simulationDuration):
                 #count = count +1
+                
                 global sentResources
                 global LOGlist
                 listToSend = loadUseCaseObjects(self.useCase_dropBox.currentText())
                 sentResources = listToSend
-                LOGlist = LOGlist + str(datetime.now())+ " " +str(sentResources) +'\n'
+                LOGlist = LOGlist + str(datetime.now())+ " " +str(sentResources) +'\n' + str(time.time() - simulationStartTime)+'\n'
                 #LOGlist.append()
                 self.dataSentSignal.emit()
                 sendThread.run(self,listToSend)
@@ -272,15 +290,24 @@ class Ui_Widget(QtCore.QObject):
         
     def startSimulation_function(self):
         #self.showLog()
-        
+
+        self.startSimulationSignal.emit()
+
+        global simulationDuration
+        global simulationStartTime
         settings.simulationStatus = "ON"
-        simulationDuration = self.simulationDuration_Input
+        if simulationStartTime == 'None':
+                simulationStartTime = time.time()
+        else:
+                simulationStartTime = pausedTime
+
+        simulationDuration = int(self.simulationDuration_Input.text()) #in seconds
         sendingPeriod = int(self.sendingDataPeridod_Input.text())
         resourceList =loadUseCaseObjects(useCaseSelction)
  
         sleep(2)
         listToSend = loadUseCaseObjects(useCaseSelction)
-        self.peridoicMode_fucntion(sendingPeriod)
+        self.peridoicMode_fucntion(sendingPeriod,simulationDuration)
     def startPeridicMode(self):
         
         t9= threading.Thread(target=startPeriodicMode_thread)
@@ -295,7 +322,9 @@ class Ui_Widget(QtCore.QObject):
 
     def stopSimulation_function(self):
         #global simulationStatus
+        self.stopSimulationSignal.emit()
         settings.simulationStatus = "OFF"
+
         
 
 
@@ -403,12 +432,12 @@ class Ui_Widget(QtCore.QObject):
     def sendEvent_function(self):
         global p
         global LOGlist
-        if settings.simulationStatus == "ON": 
+        if settings.simulationStatus == "ON" and ((time.time() - simulationStartTime) <= simulationDuration): 
                 eventSelection = self.event_dropBox.currentText()
         
                 eventObjectsToSend = loadEventList(eventSelection)
                 sendEvent(eventObjectsToSend)
-                LOGlist = LOGlist + str(datetime.now())+ " " +str(eventObjectsToSend) +'\n'
+                LOGlist =  str(datetime.now())+ " " +str(eventObjectsToSend) +'\n' +LOGlist 
                 self.dataSentSignal.emit()
 
 #     def selectEvent(self):loadEventList
@@ -417,7 +446,22 @@ class Ui_Widget(QtCore.QObject):
        global count
        global sentResources
        count = count +1
+       
        self.info_display.setText(LOGlist)
+       
+    @QtCore.pyqtSlot()
+    def stopWatch(self):
+        global pausedTime
+        pausedTime = time.time()
+        return pausedTime
+    @QtCore.pyqtSlot()
+    def startWatch(self):
+        global pausedTime
+        global simulationStartTime
+        simulationStartTime =  pausedTime
+        return simulationStartTime
+
+
 
        
         
