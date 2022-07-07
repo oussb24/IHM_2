@@ -9,6 +9,7 @@
 
 
 from csv import list_dialects
+from ctypes.wintypes import LPWIN32_FIND_DATAA
 from gc import callbacks
 import threading
 from time import sleep
@@ -17,15 +18,18 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 import settings
 import time
-from clientConnex import connectIface_function, sendResource_function,p
+from clientConnex import connectIface_function,p
 from simulationEvents import sendEvent, loadEventList
 from loadUseCase import loadUseCaseObjects
 from PyQt5.QtCore import (QCoreApplication, QObject, QRunnable, QThread,
                           QThreadPool, pyqtSignal)
                           
 from datetime import datetime  
-from TESTLOG import sendPeriod, sendThread,stopWatch
+from TESTLOG import sendPeriod, sendThread
 import logging
+from lwm2mSniff import lwm2mSniffer
+
+
 count=0
 logging.basicConfig(level=logging.WARNING)
 #connexion_status = 'None'logTextToShow#simulationStatus = "OFF"
@@ -36,7 +40,8 @@ pausedTime ='None'
 class stopWatch(QThread):
     
     def __init__(self,Ui_Widget) -> None:
-         self.Ui_Widget = Ui_Widget
+        self.Ui_Widget = Ui_Widget
+      
         #self.Ui_Widget.timeSignal.connect(self.startTime)
     def startTime(self):
         startTime = time.time()
@@ -53,7 +58,15 @@ class Ui_Widget(QtCore.QObject):
     dataSentSignal = pyqtSignal()    
     startSimulationSignal = pyqtSignal()
     stopSimulationSignal = pyqtSignal()
+
+    
+
+        
+        
     def setupUi(self, Widget):
+        #global lw_sniffer
+
+
         Widget.setObjectName("Widget")
         Widget.resize(876, 634)
         self.gridLayout = QtWidgets.QGridLayout(Widget)
@@ -218,8 +231,10 @@ class Ui_Widget(QtCore.QObject):
 
         #connect signals
         self.dataSentSignal.connect(self.showLog)
+        self.dataSentSignal.connect(self.measureData)
         self.startSimulationSignal.connect(self.startWatch) 
         self.stopSimulationSignal.connect(self.stopWatch)
+        #self.lw_sniffer.newPacketSignal.connect(self.measureData)
 
         #add logger box
 
@@ -240,7 +255,7 @@ class Ui_Widget(QtCore.QObject):
         self.useCase_label.setText(_translate("Widget", "Description"))
 
     
-    
+        
 
     def sendResource_function(self,resourceList):
         from clientConnex import p
@@ -274,7 +289,7 @@ class Ui_Widget(QtCore.QObject):
                 #LOGlist.append()
                 self.dataSentSignal.emit()
                 sendThread.run(self,listToSend)
-
+                
                 sleep(sendingPeriod)
                 
                 
@@ -290,9 +305,13 @@ class Ui_Widget(QtCore.QObject):
         
     def startSimulation_function(self):
         #self.showLog()
+        #threading.Thread(target=self.snifflwm2m).start()
+        
+        
+        
 
         self.startSimulationSignal.emit()
-
+        
         global simulationDuration
         global simulationStartTime
         settings.simulationStatus = "ON"
@@ -308,6 +327,9 @@ class Ui_Widget(QtCore.QObject):
         sleep(2)
         listToSend = loadUseCaseObjects(useCaseSelction)
         self.peridoicMode_fucntion(sendingPeriod,simulationDuration)
+        
+        
+
     def startPeridicMode(self):
         
         t9= threading.Thread(target=startPeriodicMode_thread)
@@ -329,6 +351,8 @@ class Ui_Widget(QtCore.QObject):
 
 
     def selectUseCase(self):
+        global lw_sniffer
+        lw_sniffer = self.createSniffer()
         global useCaseSelction
         useCaseSelction = self.useCase_dropBox.currentText()
         
@@ -439,21 +463,45 @@ class Ui_Widget(QtCore.QObject):
                 sendEvent(eventObjectsToSend)
                 LOGlist =  str(datetime.now())+ " " +str(eventObjectsToSend) +'\n' +LOGlist 
                 self.dataSentSignal.emit()
+    def createSniffer(self):
+        global lw_sniffer
+        def create_createSniffer_thread():
+                lw_sniffer = lwm2mSniffer()
+                return lw_sniffer
+        snifferthread = threading.Thread(target=create_createSniffer_thread)
+        snifferthread.start()
+    def snifflwm2m(self):
+        global lw_sniffer
+        pass
+                
+    def measureData(self):
+        from lwm2mSniff import packetLen_global
+        
+        #while settings.simulationStatus == "ON" and ((time.time() - simulationStartTime) <= simulationDuration):
+        self.dataUsage_display.setText(packetLen_global)
+        
+        
 
 #     def selectEvent(self):loadEventList
     @QtCore.pyqtSlot()
     def showLog(self):
+       
+       
        global count
        global sentResources
        count = count +1
-       
+       global lw_sniffer
        self.info_display.setText(LOGlist)
        
+       
+
+
     @QtCore.pyqtSlot()
     def stopWatch(self):
         global pausedTime
         pausedTime = time.time()
         return pausedTime
+
     @QtCore.pyqtSlot()
     def startWatch(self):
         global pausedTime
@@ -477,8 +525,10 @@ if __name__ == "__main__":
     ui = Ui_Widget()
     
     ui.setupUi(Widget)
+    threading.Thread(target=connectIface_function).start() 
+    
     
     Widget.show()
-    connectIface_function()
+    #connectIface_function()
     
     sys.exit(app.exec_())

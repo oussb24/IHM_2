@@ -30,21 +30,10 @@ def connectIface_function():
             else:
                 print("client already connected")
      
+            #connexionSignal.emit()
 
-def sendResource_function(resourceList):
-        global p
-        #resourceList=[3411,3336,3346,6]
-        # if(simulationStatus == "OFF"):
-        #     return 0
-            
-        #else:
-        for presentResource in range(len(resourceList)):
-                strSend = "send -c=110 " + str(resourceList[presentResource])+'\n' #strSend = "send " + resourceList[presentResource]+'\n' #"create 3424"
-                p.stdin.write(bytes(strSend,encoding='utf8'))
-                p.stdin.flush()
-        i=0
-        i=i+1
-        return 0
+
+       
         #def sendResource_thread():
 
 

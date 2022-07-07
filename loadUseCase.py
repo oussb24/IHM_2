@@ -28,4 +28,6 @@ def loadUseCaseObjects(useCaseSelction):
     t2.start()
     settings.useCaseLoaded = "YES"   
     return eventObjectsToCreate
+
+    
         

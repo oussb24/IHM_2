@@ -27,14 +27,3 @@ class sendPeriod(QThread):
             time.sleep(2)
 
 
-class stopWatch(QThread):
-    def __init__(self,Ui_Widget) -> None:
-         self.Ui_Widget = Ui_Widget
-         self.Ui_Widget.timeSignal
-    def start(self):
-        startTime = time.time()
-        pass
-    def stop(self):
-        pass
-    def restart(self):
-        pass
